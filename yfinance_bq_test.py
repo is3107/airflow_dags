@@ -1,14 +1,6 @@
 from airflow.decorators import dag, task
-
+import pendulum
 import logging
-
-from datetime import datetime
-from datetime import date
-
-from google.cloud import bigquery
-
-import yfinance as yf
-import pandas as pd
 
 
 default_args={
@@ -20,7 +12,7 @@ default_args={
     default_args=default_args,
     description='Test Data yfinance pipeline',
     schedule_interval=None,
-    start_date=datetime(2022, 3, 1),
+    start_date=pendulum.datetime(2022, 3, 1, tz="UTC"),
     catchup=False,
     tags=['yfinance'],
 )
@@ -29,7 +21,9 @@ def yfinance_bq_test_etl():
 
     @task
     def yfinance2bq_apple_daily(ds=None):
-
+        import yfinance as yf
+        from google.cloud import bigquery
+        
         # Download data
         logging.info("Downloading Data")
         data=yf.download("AAPL", start='2022-03-01', end='2022-03-05')
@@ -68,5 +62,3 @@ def yfinance_bq_test_etl():
     yfinance2bq = yfinance2bq_apple_daily()
 
 yfinance_bq_test_etl_dag = yfinance_bq_test_etl()
-
-        
