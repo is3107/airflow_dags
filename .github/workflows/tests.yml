@@ -1,0 +1,41 @@
+name: Tests
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or open pull request events
+  push:
+  pull_request:
+    types:
+      - opened
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.repository != 'is3107/airflow_dags') || github.event_name == 'workflow_dispatch'
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        
+      # Setup Python for testing
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6.9'
+          
+      # Install dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/requirements.txt
+          pip check
+          
+      # Run Tests
+      - name: Test with Pytest
+        run: |
+          pip install pytest
+          cd tests || exit
+          pytest tests/tests.py -v
