@@ -38,4 +38,4 @@ jobs:
         run: |
           pip install pytest
           cd tests || exit
-          pytest tests/tests.py -v
+          pytest tests.py -v
