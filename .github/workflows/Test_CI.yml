@@ -1,0 +1,61 @@
+name: Test_CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events. Ignores if push/PR to main branch to prevent recursion
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches-ignore:
+      - main
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+#    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.repository != 'is3107/airflow_dags') || github.event_name == 'workflow_dispatch'
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        
+      # Setup Python for testing
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6.9'
+          
+      # Install dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/requirements.txt
+          pip check
+          
+      # Run Tests
+      - name: Test with Pytest
+        run: |
+          pip install pytest
+          cd tests || exit
+          pytest tests.py -v
+
+  # Sync develop branch with main
+  sync-branch:
+    needs: test
+    runs-on: ubuntu-latest
+
+    # Only sync on push, in project repository and on the develop branch
+    if: github.event_name == 'push' && github.repository == 'is3107/airflow_dags' && github.ref_name == 'develop'
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Merge develop -> main
+        uses: devmasx/merge-branch@master
+        with:
+          type: now
+          from_branch: develop
+          target_branch: main
+          github_token: ${{ github.token }}
