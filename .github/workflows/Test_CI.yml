@@ -55,7 +55,7 @@ jobs:
       - name: Merge develop -> main
         uses: everlytic/branch-merge@1.1.2
         with:
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.ACCESS_TOKEN }}
           source_ref: ${{ github.ref_name }}
           target_branch: 'main'
           commit_message_template: '[Automated] Merged {source_ref} into {target_branch}'
