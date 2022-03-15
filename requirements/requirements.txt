@@ -33,6 +33,7 @@ cryptography==36.0.1
 dataclasses==0.8
 DateTime==4.4
 defusedxml==0.7.1
+diagrams==0.21.1
 dill==0.3.1.1
 distlib==0.3.4
 dnspython==2.1.0
