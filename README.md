@@ -268,20 +268,23 @@ Hadoop HDFS (Storage) - Spark (Compute) - Hive / Presto (Serving Layer)
 Ultimately, we chose not to do so because it was likely that we would have only been able to deploy 1-2 nodes at most due to cost considerations, defeating the point of implementing a distributed storage and compute architecture.
 </details>
 
-## Best Practices
 
-### Data Pipeline Architecture
+## Data Pipeline Architecture
 
 In general, data in the pipeline will flow as per the diagram below. Between each arrow, several smaller steps of processing and data transformation may exist.
 
 ```mermaid
 flowchart LR
-    A[ODS]-->B[DIM/DWD]
-    B-->C[DWA]
-    C-->D[DM]
+    A[Source Data]-->B[ODS]
+    B-->C[DIM/DWD]
+    C-->D[DWA]
+    D-->E[DM]
+    E-->F[Output: Visualisation, etc.]
+    style A stroke-dasharray: 5
+    style F stroke-dasharray: 5
 ```
 
-#### Layer Definitions
+### Layer Definitions
 
 Table Layer | Definition
 --- | ---
@@ -291,26 +294,154 @@ Table Layer | Definition
 **DWA** | **Data Warehouse Aggregation**: This table contains aggregated metrics, obtained from a GROUP BY done on **DWD**-level tables joined with **DIM** tables.
 **DM** | **Data Mart**: This table is provided to a specific business-line or department, often focusing on a specific subject area <details><summary> **Example** </summary> Tables that are fed into visualisation platforms for BI purposes </details>
 
-#### Warehouse Schema
+### Warehouse Schema
 
-TODO :upside_down_face:
+Instead of pre-defining a particular warehouse schema such as Star or Snowflake, we are instead going with a **schema-on-read** approach
 
-Decide on what schema we are following (it is essentially the relationship between DIM and DWD tables) <br/>
-Google Snowflake, Star, Galaxy schema
+This provides a greater level of flexibility when dealing with the organisation of our data, and also allows for greater agility in terms of responding to new requirements
+
+### DAG Modelling
+
+Instead of having a DAG file encompass the entire pipeline end-to-end, we are instead splitting the entire pipeline into 2
+
+#### Ingestion
+```mermaid
+flowchart LR
+    A[Source Data]-->B[ODS]
+    B-->C[DIM/DWD]
+    style A stroke-dasharray: 5
+```
+An ingestion DAG will handle extracting data from the source, staging it in the ODS layer, and extracting useful data columns into the DIM and DWD layers
+
+#### Analytics
+```mermaid
+flowchart LR
+    C[DIM/DWD]-->D[DWA]
+    D-->E[DM]
+    E-->F[Output: Visualisation, etc.]
+    style F stroke-dasharray: 5
+```
+An analytics DAG will extract data from the DIM/DWD tables, conduct various steps of transformations and aggregations into the DWA and subsequently the DM layers, before transmitting the data to its final output destination.
+
+#### Rationale
+
+Lets say we have a pipeline which produces DIM table A and DWD table B. After much transformation, they eventually result in DM table C. 
+
+**DAG File**:
+```mermaid
+flowchart LR
+    A[DIM A]-->C[DM C]
+    B[DWD B]-->C
+```
+
+However, there is a new requirement for DM table D. D is dependent on A, as well as DIM/DWD tables E and F. 
+
+*Note*: It is unreasonable to subscribe to the notion that each pipeline in a data warehouse is independent of each other. More often than not, there are cross-pipeline dependencies, as data engineers seek to simply reuse tables, building upon the work done by other engineers.
+
+</br>
+
+If we were to keep to the methodology that the entire pipeline should be on one DAG file, then the task producing D should be added to the DAG file, **ALONG** with the tasks producing E and F.
+
+**DAG File**:
+```mermaid
+flowchart LR
+    A[DIM A]-->C[DM C]
+    B[DWD B]-->C
+    A-->D[DM D]
+    E[DIM E]-->D
+    F[DWD F]-->D
+```
+
+As the company's data requirements, and the number of data pipelines scales up, the entire DAG file gets increasingly complex. This creates issues in terms of scalability and code maintainability.
+
+However, by instead looking at the entire pipeline as an ingestion pipeline followed by an analytics pipeline, we are able to modularise it into separate DAGs that are far easier to maintain and follow along.
+
+For anyone wishing to have a bird's eye view of the overall picture, they are still able to do so via Airflow's cross-DAG dependency view.
 
 <br/>
 
-### Standardised Naming Scheme
+## Standardised Naming Scheme
 
 Naming for tasks, DAGs and database tables should follow the following standards:
 
-TODO :upside_down_face:
 
-#### Tasks
+### DB Tables
 
-#### DAGs
+The complete table syntax in BigQuery follows the following format: 
 
-#### DB Tables
+```
+<project_name>.<dataset_name>.<table_name>
+```
+Example: `is3107.lti_ods.ods_finviz_stock_performance_daily`
+
+- Project Name
+    - Already pre-defined as `is3107`
+
+- Dataset Name
+    - Format: `<warehouse_name>_<layer>`
+    - Example: (Long-Term Investment Warehouse)
+        ```
+        lti_ods
+        ```
+
+
+
+- Table Name
+    - Format: `<layer>_<data_description>_<granularity>`
+    - Example: `ods_finviz_stock_performance_daily`
+    - **Layer** is repeated here for consistency with [DAG task names](#dag-tasks)
+    - **Data description** should concisely describe what kind of data is in this table
+        - For example: `source_a_sgx_stock_price` `all_ratings_info`
+        - Underscore character `_` should be used to separate words
+    - **Granularity** refers to the time granularity of the data
+        - Frequently used: `daily` `hourly` `historical`
+        - `daily` here would be used to refer to daily snapshot tables (contains data from a daily batch job)
+        - `historical` would be a table that *accumulates* data from an upstream daily snapshot table, giving a full view of the data
+
+
+
+
+### DAGs
+
+#### Ingestion
+DAGs should follow this naming format:
+
+```
+ingestion_<source>2<destination>_<data_description>
+```
+
+For example: `ingestion_finviz2bq_stock_performance`
+
+#### Analytics
+DAGs should follow this naming format:
+
+```
+analytics_<description_of_eventual_data_output>
+```
+
+For example: `analytics_portfolio_performance`
+
+
+### DAG Tasks
+
+Tasks should follow this naming format:
+
+```
+<table_name_that_the_task_writes_into>
+```
+
+For example, if a task uses the `BigQueryInsertJobOperator` to read from various tables, and writes the result into the table `lti_dwd.dwd_all_ratings_info_daily`, the task should be named `dwd_all_ratings_info_daily`
+
+This consistency will allow for a developer to navigate between task and table more easily.
+
+</br>
+
+**Exceptions**:
+In some cases, writing to a BigQuery table is not accomplished within 1 task. In that case, the tasks should be organised in a task group via the task group decorator [`@task_group`](https://marclamberti.com/blog/airflow-taskgroups-all-you-need-to-know/#The_Decorator), and the task group shall follow the above naming format.
+
+The nested tasks within the task group should then have names that appropriately and concisely describe their actions.
+
+## Best Practices
 
 ## Useful Tools
 
