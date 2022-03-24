@@ -30,4 +30,6 @@ jobs:
           script: |
             cd /home/is3107/airflow/dags
             git pull origin main
+            source /home/is3107/is3107/bin/activate
+            pip install -r /home/is3107/airflow/dags/requirements/requirements.txt
         
