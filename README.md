@@ -16,9 +16,10 @@ Alternatively, if you are viewing this README on the VM itself, and are using Vi
 ### Important Links
 
 * Airflow Web App for Dev VM: [`https://dev.is3107.live/`](https://dev.is3107.live/)
+    * VM at `34.127.0.57`
 
 * Airflow Web App for Production VM [`https://is3107.live/`](https://is3107.live/)
-    * TODO Not up yet -> Currently just redirects to Dev VM :upside_down_face: 
+    * VM at `35.199.159.0`
 
 ### First-time Setup
 1. SSH into the Dev VM:
@@ -268,6 +269,33 @@ Hadoop HDFS (Storage) - Spark (Compute) - Hive / Presto (Serving Layer)
 Ultimately, we chose not to do so because it was likely that we would have only been able to deploy 1-2 nodes at most due to cost considerations, defeating the point of implementing a distributed storage and compute architecture.
 </details>
 
+### Cloud Functions
+
+Cloud Functions serves as our secondary compute cluster, supplementing BigQuery. Its use-case is for scenarios where making use of BigQuery is impossible. 
+
+For example, pre-processing tasks in an ingestion DAG. Making use of BigQuery here is not possible given that the data isn't even loaded into BigQuery yet. Loading the data first, and then conducting the processing steps is also not possible, since such pre-processing is often **required** to load the data into BigQuery. Examples include: 
+
+* Formatting column names
+* Adding partition date column 
+
+#### Airflow as an Orchestrator
+
+Cloud Functions allows us to offload such pre-processing tasks to a serverless compute cluster. This ensures that Airflow remains focused on its role as an orchestrator. 
+
+This is particularly important - doing pre-processing in the DAG itself, and thus in Airflow - is by nature inefficient, and could prove disastrous especially when the size of the dataset scales up. Processing big data could result in Out-Of-Memory errors on the small VM that we have Airflow on. Making use of Cloud Functions, which has the ability to scale up and down to handle varying workloads, helps to neatly solve this issue.
+
+#### Cloud Functions Usage
+
+Our workflow for Cloud Functions is simple.
+
+1. Generate `requirements.txt` and package it together with the code in a `.zip` file
+
+2. Deploy to Google Cloud
+
+3. Invoke the Function
+
+This will be typically defined as a taskgroup in our ingestion DAGs, and will be run as the first task in the DAG. The DAG itself thus also handles the CI/CD of the Cloud Function itself, ensuring that any changes to the Cloud Function code will be propagated to Google Cloud at the start of the DAG run. Since we are only charged for invocations, and not deployments, re-deploying frequently is not an issue.
+
 
 ## Data Pipeline Architecture
 
@@ -398,6 +426,9 @@ Example: `is3107.lti_ods.ods_finviz_stock_performance_daily`
         - `daily` here would be used to refer to daily snapshot tables (contains data from a daily batch job)
         - `historical` would be a table that *accumulates* data from an upstream daily snapshot table, giving a full view of the data
 
+- Column Name
+    - Format: `Pascal_Snake_Case`
+
 
 
 
@@ -442,6 +473,37 @@ In some cases, writing to a BigQuery table is not accomplished within 1 task. In
 The nested tasks within the task group should then have names that appropriately and concisely describe their actions.
 
 ## Best Practices
+
+### Table Partitions
+
+The majority of our tables will be partitioned on day. The data available in the partition can be of 2 kinds:
+* Daily data 
+    * Data that has a natural day split, such as transactions
+* Snapshot data 
+    * Aggregated data, where each partition is a historical snapshot of the current state of data on that day itself
+
+Table partitioning provides several advantages:
+1. Data idempotency
+    * Particularly in the case of aggregated data, snapshotting it via partitions allows for backfilling and reruns to be done easily
+    * For unpartitoned tables, `INSERTS/DELETES` over the past few days would mean that a rerun would generate different results
+
+2. Reducing data scanned
+    * This helps with both query speed, and cost
+
+### Time-Zone Aware DAG
+
+Airflow provides time-zone aware DAGs. However, the templating variables provided will not follow time-zone settings, and are instead UTC0. Please use `dag_run.logical_date.astimezone(dag.timezone)` in your templates instead.
+
+For example:
+```py
+## Original YYYY-MM-DD
+{{ ds }}
+
+## Timezone aware YYYY-MM-DD
+{{ dag_run.logical_date.astimezone(dag.timezone) | ds }}
+```
+
+Please refer to [Airflow Templates](https://airflow.apache.org/docs/apache-airflow/stable/templates-ref.html) for more filters on formatting the timezone aware datetime
 
 ## Useful Tools
 
