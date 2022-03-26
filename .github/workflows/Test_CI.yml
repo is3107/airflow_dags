@@ -40,7 +40,7 @@ jobs:
         run: |
           pip install pytest
           cd tests || exit
-          pytest tests.py -v
+          pytest tests.py -v -0 log_cli=true
 
   # Sync develop branch with main
   sync-branch:
