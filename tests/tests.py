@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../templates"))
 ingestion_pattern = r"ingestion_[a-zA-Z]*2[a-zA-Z]*_\w*"
 analytics_pattern = r"analytics_\w*"
 
-@pytest.fixture(params=["../dags"])
+@pytest.fixture(params=["./dags"])
 def dag_bag(request):
     return DagBag(dag_folder=request.param, include_examples=False)
 
