@@ -290,11 +290,11 @@ Our workflow for Cloud Functions is simple.
 
 1. Generate `requirements.txt` and package it together with the code in a `.zip` file
 
-2. Deploy to Google Cloud
+2. Deploy to Google Cloud if hashes of local and cloud source files do not match
 
 3. Invoke the Function
 
-This will be typically defined as a taskgroup in our ingestion DAGs, and will be run as the first task in the DAG. The DAG itself thus also handles the CI/CD of the Cloud Function itself, ensuring that any changes to the Cloud Function code will be propagated to Google Cloud at the start of the DAG run. Since we are only charged for invocations, and not deployments, re-deploying frequently is not an issue.
+This has been defined as a custom operator (See `templates/IngestionOperator.py`) and will often be run as the first task in an Ingestion DAG. The DAG itself thus also handles the CI/CD of the Cloud Function itself, ensuring that any changes to the Cloud Function code will be propagated to Google Cloud at the start of the DAG run.
 
 
 ## Data Pipeline Architecture
@@ -488,6 +488,7 @@ Table partitioning provides several advantages:
     * For unpartitoned tables, `INSERTS/DELETES` over the past few days would mean that a rerun would generate different results
 
 2. Reducing data scanned
+    * A query on an unpartitioned table would likely conduct a whole table scan even when fitering by day. In comparison, the day partitioning will guarantee that only data from this partition is scanned
     * This helps with both query speed, and cost
 
 ### Time-Zone Aware DAG

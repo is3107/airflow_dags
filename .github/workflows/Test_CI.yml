@@ -38,9 +38,7 @@ jobs:
       # Run Tests
       - name: Test with Pytest
         run: |
-          pip install pytest
-          cd tests || exit
-          pytest tests.py -v
+          python -m pytest tests/tests.py -v -o log_cli=true
 
   # Sync develop branch with main
   sync-branch:
