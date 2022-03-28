@@ -7,6 +7,7 @@ import re
 from airflow.models import DagBag
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../dags"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../templates"))
 ingestion_pattern = r"ingestion_[a-zA-Z]*2[a-zA-Z]*_\w*"
 analytics_pattern = r"analytics_\w*"
 
