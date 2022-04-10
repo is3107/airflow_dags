@@ -24,8 +24,8 @@ def default_body(additional_args = None):
 Uses BashOperator to call pipreqs CLI
 requires an absolute path, not relative path 
 """
-def generate_requirements(task_id:str, path:str):
-    bash_command = f"{Paths.GENERATE_REQ_SCRIPT} {path}"
+def generate_requirements(task_id:str, path:str, date:str):
+    bash_command = f"{Paths.GENERATE_REQ_SCRIPT} {path} {date}"
     return BashOperator(task_id = task_id, bash_command = bash_command)
 
 
