@@ -316,7 +316,7 @@ flowchart LR
 
 Table Layer | Definition
 --- | ---
-**ODS** | **Original Data Source**: The table data that is ingested directly from the original data source. Little to no data cleaning and data processing has been done at this stage.
+**ODS** | **Operational Data Store**: The table data that is ingested directly from the original data source. Little to no data cleaning and data processing has been done at this stage.
 **DIM** | **Dimensional Table**: This table contains dimensional attributes only. These attributes are usually *descriptive* and/or *categorical* in nature
 **DWD** | **Data Warehouse Detail**: This is a detail-level fact table, containing *metrics/numeric measures* that are indexed with a key. <details><summary> **Example** </summary>Price transaction data: Stock Ticker (Key), Price (metric)</details>
 **DWA** | **Data Warehouse Aggregation**: This table contains aggregated metrics, obtained from a GROUP BY done on **DWD**-level tables joined with **DIM** tables.
