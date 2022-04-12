@@ -22,5 +22,5 @@ CASE
     ELSE 'NEUTRAL'
 END AS overall_sentiment_for_ticker
 FROM temp t
-LEFT JOIN `is3107.lti_ods.ods_sgx_stock_list_daily` s ON t.ticker = s.stock_code
+LEFT JOIN `is3107.lti_dwd.dwd_sgx_stock_list_daily` s ON t.ticker = s.stock_code
 WHERE s.p_date = "{{ dag_run.logical_date.astimezone(dag.timezone) | ds }}"
