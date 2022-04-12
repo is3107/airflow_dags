@@ -8,6 +8,15 @@ from templates.body import Body
 from templates.IngestionOperator import IngestionOperator
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
 
+doc_md = """
+# Stock price data from SGX and yfinance
+
+SGX is primary source, yfinance as backup.
+
+Price data is only produced on trading days. Thus, the table will have empty partitions on weekends, holidays etc.
+
+"""
+
 # dag config
 default_args={
     'owner': 'Timothy',
@@ -21,7 +30,8 @@ default_args={
     start_date=pendulum.datetime(2022, 3, 23, tz='Asia/Singapore'),
     catchup=False,
     tags=['yfinance', 'ods', 'dwd'],
-    template_searchpath='/home/is3107/airflow/dags/templates/sql'
+    template_searchpath='/home/is3107/airflow/dags/templates/sql',
+    doc_md=doc_md
 )
 
 # main python ingestion function
