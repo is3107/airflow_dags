@@ -18,19 +18,19 @@ default_args={
     schedule_interval='@daily',
     start_date=pendulum.datetime(2022, 3, 25, tz='Asia/Singapore'),
     catchup=False,
-    tags=['sgx', 'dwd'],
+    tags=['sgx', 'dim'],
 )
 
 
 def ingestion_sgx2bq_stock_code_list():
     
-    sgx_stock_code_ingestion = IngestionOperator(
+    dim_sgx_stock_list_daily = IngestionOperator(
         source_path = Paths.SGX_STOCK_CODE_SCRAPING, 
         deploy_body = Body.SGX_STOCK_CODE_SCRAPING,
-        task_id = 'sgx_stock_code_ingestion',
+        task_id = 'dim_sgx_stock_list_daily',
         date = "{{ dag_run.logical_date.astimezone(dag.timezone) | ds }}"
     )
 
-    sgx_stock_code_ingestion
+    dim_sgx_stock_list_daily
 
 sgx_stock_code_scraping_dag = ingestion_sgx2bq_stock_code_list()

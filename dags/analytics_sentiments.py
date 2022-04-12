@@ -27,6 +27,12 @@ def analytics_sentiments():
         external_dag_id='ingestion_socialmedia2bq_sentiments',
         failed_states=['failed']
     )
+
+    check_upstream_stock_code = ExternalTaskSensor(
+        task_id='check_for_upstream_stock_code',
+        external_dag_id='ingestion_sgx2bq_stock_code_list',
+        failed_states=['failed']
+    )
     
     aggregation = BigQueryInsertJobOperator(
         task_id="dwa_aggregate_sentiments",
@@ -60,6 +66,6 @@ def analytics_sentiments():
         }
     )
 
-    check_upstream >> aggregation >> export_to_dm
+    [check_upstream, check_upstream_stock_code] >> aggregation >> export_to_dm
 
 dag = analytics_sentiments()
