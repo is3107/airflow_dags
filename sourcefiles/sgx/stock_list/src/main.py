@@ -69,6 +69,6 @@ def get_stock_list(request):
 
     client = Client()
     job_config = LoadJobConfig(write_disposition=WriteDisposition.WRITE_TRUNCATE, schema=schema)
-    client.load_table_from_dataframe(stockList, destination=f"lti_ods.ods_sgx_stock_list_daily${ds.strftime('%Y%m%d')}", job_config=job_config)
+    client.load_table_from_dataframe(stockList, destination=f"lti_dim.dim_sgx_stock_list_daily${ds.strftime('%Y%m%d')}", job_config=job_config)
 
     return f"Successful run for date: {ds}"
