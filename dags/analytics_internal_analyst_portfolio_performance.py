@@ -24,7 +24,8 @@ Every portfolio is tied to an analyst.
     start_date=pendulum.datetime(2022, 3, 20, tz='Asia/Singapore'),
     catchup=False,
     tags=['internal', 'dwa', 'dm'],
-    template_searchpath='/home/is3107/airflow/dags/templates/sql'
+    template_searchpath='/home/is3107/airflow/dags/templates/sql',
+    doc_md=doc_md
 )
 
 def analytics_internal_analyst_portfolio_performance():
