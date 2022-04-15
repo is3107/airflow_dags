@@ -506,6 +506,50 @@ For example:
 
 Please refer to [Airflow Templates](https://airflow.apache.org/docs/apache-airflow/stable/templates-ref.html) for more filters on formatting the timezone aware datetime
 
+### Triggering Tasks
+
+Due to certain pecularities with the interaction with the interaction between cross-DAG dependencies (which we use) and triggering a DAG from the Web UI - the downstream dependency will not run if the upstream DAG was triggered via the Web UI.
+
+It attempts to match the default scheduled daily runtime (midnight) with the time that the DAG was triggered in the Web UI. As such, we do not recommend trying to run a DAG via the Web UI.
+
+Instead, please do the following to set the correct time for a run.
+</br>
+</br>
+
+
+#### Backfill Instructions:
+
+1. If you are backfilling for a day which has **run before**, first clear the task on the Web UI:
+    * **Option 1**: To clear for a small number of runs:
+        1. Click on the DAG and enter tree view (default option)
+        2. Click on the small circular icon for the day you wish to backfill
+            * ![alt text](./diagrams/backfill-images/circle.png "Example of circle icon")
+        3. On the pop-up screen, click on Clear
+    </br>
+    </br>
+
+    * **Option 2**: To clear multiple days in batch via the Web UI:
+        1. Go to Browse -> Dag Runs (from the top navigation bar)
+            * <img src="./diagrams/backfill-images/dag_run.png" width="45%" alt="Dag Run">
+        2. Click on Search and filter by DAG ID
+            * <img src="./diagrams/backfill-images/search.png" width="45%" alt="Search">
+        3. Click on the checkboxes of the Dag runs you wish to clear
+        4. Click on Actions -> Clear the State
+            * <img src="./diagrams/backfill-images/clear_state.png" width="45%" alt="Clear State">
+
+2. SSH into the VM, and run a backfill job via CLI:
+
+```sh
+// Format:
+
+airflow dags backfill task_id --start-date YYYY-MM-DD --end-date YYYY-MM-DD
+
+// Example:
+
+airflow dags backfill analytics_internal_analyst_portfolio_performance
+ --start-date 2022-04-01 --end-date 2022-04-01
+```
+
 ## Useful Tools
 
 [Save as Root in Remote - SSH](https://marketplace.visualstudio.com/items?itemName=yy0931.save-as-root)
